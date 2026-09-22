@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawing ++ First Assignment</title>
+    <!-- Tailwind CSS for modern UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333333;
+            border-radius: 3px;
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+
+    <header class="bg-black border-b border-neutral-800 px-6 py-3 flex justify-between items-center shadow-lg z-20">
+        <div class="flex items-center space-x-3">
+            <div class="bg-white p-2 rounded-xl text-black shadow-md">
+                <i class="fa-solid fa-pen-nib text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-white tracking-wider">Drawing ++ First Assignment</h1>
+                <p class="text-[11px] text-neutral-400">Advanced Iron Filings & Vector Field Simulator</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-xs px-3 py-1 bg-neutral-900 text-neutral-300 rounded-full border border-neutral-800 font-mono">
+                <span id="filingCountBadge" class="font-bold text-white">8,000</span> Filings Active
+            </span>
+            
+            <!-- Export PNG Dropdown -->
+            <div class="relative" id="exportDropdownContainer">
+                <button id="exportDropdownBtn" class="bg-white hover:bg-neutral-200 text-black px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-md">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Export PNG</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] ml-1"></i>
+                </button>
+                <div id="exportMenu" class="hidden absolute right-0 mt-2 w-48 bg-black border border-neutral-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <button id="exportMetalOnlyBtn" class="w-full text-left px-4 py-2.5 text-xs text-neutral-300 hover:bg-neutral-900 hover:text-white transition flex items-center space-x-2">
+                        <i class="fa-solid fa-bars text-white"></i>
+                        <span>Metal Lines Only</span>
+                    </button>
+                    <button id="exportWithMagnetsBtn" class="w-full text-left px-4 py-2.5 text-xs text-neutral-300 hover:bg-neutral-900 hover:text-white transition flex items-center space-x-2">
+                        <i class="fa-solid fa-magnet text-white"></i>
+                        <span>With Magnets</span>
+                    </button>
+                </div>
+            </div>
+
+            <button id="helpBtn" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 px-3 py-1.5 rounded-lg text-xs font-medium transition border border-neutral-800 flex items-center space-x-1.5">
+                <i class="fa-solid fa-circle-question text-white"></i>
+                <span>Guide</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
+        
+        <aside class="w-full lg:w-80 bg-black/95 backdrop-blur border-r border-neutral-800 p-5 flex flex-col space-y-5 z-10 overflow-y-auto">
+            
+            <!-- Tool Mode Selector -->
+            <div>
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">Interaction Mode</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="modeAdd" class="bg-white text-black py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition shadow-md">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>Add Source</span>
+                    </button>
+                    <button id="modeMove" class="bg-neutral-900 text-neutral-300 hover:bg-neutral-800 py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center space-x-2 transition border border-neutral-800">
+                        <i class="fa-solid fa-hand"></i>
+                        <span>Move / Rotate</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Magnet Type Selector for New Additions -->
+            <div>
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">Source Type</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setSourceType('bar')" id="typeBarBtn" class="bg-neutral-900 border border-white text-white p-2.5 rounded-xl text-xs font-medium text-left transition flex flex-col space-y-1">
+                        <span class="font-semibold"><i class="fa-solid fa-grip-lines mr-1.5"></i>Bar Magnet</span>
+                        <span class="text-[10px] text-neutral-400">Dipole (N & S)</span>
+                    </button>
+                    <button onclick="setSourceType('vortex')" id="typeVortexBtn" class="bg-neutral-900 border border-neutral-800 text-neutral-300 p-2.5 rounded-xl text-xs font-medium text-left transition flex flex-col space-y-1 hover:bg-neutral-800">
+                        <span class="font-semibold"><i class="fa-solid fa-hurricane mr-1.5"></i>Vortex Field</span>
+                        <span class="text-[10px] text-neutral-400">Circular current</span>
+                    </button>
+                    <button onclick="setSourceType('horseshoe')" id="typeHorseshoeBtn" class="bg-neutral-900 border border-neutral-800 text-neutral-300 p-2.5 rounded-xl text-xs font-medium text-left transition flex flex-col space-y-1 hover:bg-neutral-800">
+                        <span class="font-semibold"><i class="fa-solid fa-horse-shoe mr-1.5"></i>Horseshoe</span>
+                        <span class="text-[10px] text-neutral-400">U-shape gap</span>
+                    </button>
+                    <button onclick="setSourceType('quadrupole')" id="typeQuadrupoleBtn" class="bg-neutral-900 border border-neutral-800 text-neutral-300 p-2.5 rounded-xl text-xs font-medium text-left transition flex flex-col space-y-1 hover:bg-neutral-800">
+                        <span class="font-semibold"><i class="fa-solid fa-cubes mr-1.5"></i>Quadrupole</span>
+                        <span class="text-[10px] text-neutral-400">4 alternating poles</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selected Magnet Properties -->
+            <div id="magnetPropsPanel" class="bg-neutral-900/50 p-4 rounded-xl border border-neutral-800 space-y-4 opacity-50 pointer-events-none">
+                <div class="flex justify-between items-center">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-white">Selected Source HUD</span>
+                    <button id="deleteMagnetBtn" class="text-neutral-300 hover:text-white text-xs bg-neutral-800 px-2 py-1 rounded border border-neutral-700 transition">
+                        <i class="fa-solid fa-trash mr-1"></i>Delete
+                    </button>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-neutral-300 mb-1">
+                        <span>Strength / Flux Magnitude</span>
+                        <span id="strengthVal" class="font-mono text-white">120</span>
+                    </div>
+                    <input type="range" id="strengthSlider" min="20" max="300" value="120" class="w-full accent-white bg-neutral-800 rounded-lg h-2 cursor-pointer">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-neutral-300 mb-1">
+                        <span>Size / Scale Factor</span>
+                        <span id="sizeVal" class="font-mono text-white">1.0x</span>
+                    </div>
+                    <input type="range" id="sizeSlider" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-white bg-neutral-800 rounded-lg h-2 cursor-pointer">
+                </div>
+                <div class="flex space-x-2">
+                    <button id="flipPolarityBtn" class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 py-1.5 px-3 rounded-lg text-xs font-medium transition border border-neutral-700 flex items-center justify-center space-x-1">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Flip Polarity</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Presets -->
+            <div>
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block mb-2">Presets</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="loadPreset('dipole')" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 p-2 rounded-xl text-xs font-medium text-left transition border border-neutral-800">
+                        <i class="fa-solid fa-grip-lines mr-1.5 text-white"></i>Single Bar
+                    </button>
+                    <button onclick="loadPreset('vortex')" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 p-2 rounded-xl text-xs font-medium text-left transition border border-neutral-800">
+                        <i class="fa-solid fa-hurricane mr-1.5 text-white"></i>Vortex Field
+                    </button>
+                    <button onclick="loadPreset('attract')" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 p-2 rounded-xl text-xs font-medium text-left transition border border-neutral-800">
+                        <i class="fa-solid fa-magnet mr-1.5 text-white"></i>Attraction
+                    </button>
+                    <button onclick="loadPreset('quad')" class="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 p-2 rounded-xl text-xs font-medium text-left transition border border-neutral-800">
+                        <i class="fa-solid fa-cubes mr-1.5 text-white"></i>Quadrupole
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simulation Parameters -->
+            <div class="space-y-4 pt-2 border-t border-neutral-800">
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 block">Simulation Options</label>
+                
+                <div>
+                    <div class="flex justify-between text-xs text-neutral-300 mb-1">
+                        <span>Metal Line Length</span>
+                        <span id="filingLengthVal" class="font-mono text-white">12px</span>
+                    </div>
+                    <input type="range" id="filingLengthSlider" min="4" max="50" value="12" class="w-full accent-white bg-neutral-800 rounded-lg h-2 cursor-pointer">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-neutral-300">Show Magnetic Sources</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="sourcesVisibilityToggle" checked class="sr-only peer">
+                        <div class="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-neutral-900 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-black after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-neutral-300">Show Field Lines Overlay</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="fieldLinesToggle" class="sr-only peer">
+                        <div class="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-neutral-900 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-black after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-neutral-300">Continuous Agitation (Jiggle)</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="jiggleToggle" checked class="sr-only peer">
+                        <div class="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-neutral-900 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-black after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-neutral-800 flex space-x-2">
+                <button id="scatterBtn" class="flex-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 py-2 px-3 rounded-xl text-xs font-medium transition border border-neutral-800 flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-wind text-white"></i>
+                    <span>Scatter</span>
+                </button>
+                <button id="clearBtn" class="flex-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 py-2 px-3 rounded-xl text-xs font-medium transition border border-neutral-800 flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Reset All</span>
+                </button>
+            </div>
+
+        </aside>
+
+        <div class="flex-1 relative bg-black flex items-center justify-center overflow-hidden" id="canvasContainer">
+            <canvas id="simCanvas" class="w-full h-full cursor-crosshair"></canvas>
+            
+            <!-- On-screen hint overlay -->
+            <div class="absolute bottom-6 left-6 bg-neutral-900/90 backdrop-blur border border-neutral-800 text-neutral-300 px-4 py-2.5 rounded-xl text-xs shadow-xl flex items-center space-x-3 pointer-events-none">
+                <i class="fa-solid fa-lightbulb text-white text-sm"></i>
+                <span>Drawing ++ First Assignment Workspace</span>
+            </div>
+
+            <!-- Status HUD -->
+            <div class="absolute top-6 right-6 bg-neutral-900/90 backdrop-blur border border-neutral-800 text-neutral-300 px-3 py-1.5 rounded-xl text-xs shadow-xl font-mono flex items-center space-x-3">
+                <div>FPS: <span id="fpsCounter" class="text-white">60</span></div>
+                <div class="w-px h-3 bg-neutral-700"></div>
+                <div>Sources: <span id="magnetCount" class="text-white">1</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-black border border-neutral-800 max-w-lg w-full rounded-2xl p-6 shadow-2xl relative space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-nib text-white"></i>
+                    <span>Drawing ++ Assignment Guide</span>
+                </h3>
+                <button id="closeModalBtn" class="text-neutral-400 hover:text-white p-1.5 rounded-lg hover:bg-neutral-900 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="text-xs text-neutral-300 space-y-2.5 leading-relaxed">
+                <p>Welcome to <strong>Drawing ++ First Assignment</strong>. Configure sources, scale geometry, and export clean high-contrast black-and-white vector field outputs.</p>
+                <ul class="list-disc pl-5 space-y-1.5 text-neutral-400">
+                    <li><strong class="text-white">Metal Lines Only Export:</strong> Clean vector patterns.</li>
+                    <li><strong class="text-white">With Magnets Export:</strong> Captures source placement.</li>
+                </ul>
+            </div>
+            <div class="pt-3 border-t border-neutral-800 flex justify-end">
+                <button id="closeModalBtnFooter" class="bg-white hover:bg-neutral-200 text-black px-4 py-2 rounded-xl text-xs font-semibold transition shadow-lg">
+                    Got it!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = 0;
+        let height = 0;
+
+        // UI Elements
+        const modeAddBtn = document.getElementById('modeAdd');
+        const modeMoveBtn = document.getElementById('modeMove');
+        const strengthSlider = document.getElementById('strengthSlider');
+        const strengthVal = document.getElementById('strengthVal');
+        const sizeSlider = document.getElementById('sizeSlider');
+        const sizeVal = document.getElementById('sizeVal');
+        const filingLengthSlider = document.getElementById('filingLengthSlider');
+        const filingLengthVal = document.getElementById('filingLengthVal');
+        const flipPolarityBtn = document.getElementById('flipPolarityBtn');
+        const deleteMagnetBtn = document.getElementById('deleteMagnetBtn');
+        const fieldLinesToggle = document.getElementById('fieldLinesToggle');
+        const sourcesVisibilityToggle = document.getElementById('sourcesVisibilityToggle');
+        const jiggleToggle = document.getElementById('jiggleToggle');
+        const scatterBtn = document.getElementById('scatterBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        // Export elements
+        const exportDropdownBtn = document.getElementById('exportDropdownBtn');
+        const exportMenu = document.getElementById('exportMenu');
+        const exportMetalOnlyBtn = document.getElementById('exportMetalOnlyBtn');
+        const exportWithMagnetsBtn = document.getElementById('exportWithMagnetsBtn');
+
+        const filingCountBadge = document.getElementById('filingCountBadge');
+        const magnetCountBadge = document.getElementById('magnetCount');
+        const fpsCounter = document.getElementById('fpsCounter');
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const closeModalBtnFooter = document.getElementById('closeModalBtnFooter');
+
+        // Simulation state
+        let mode = 'add';
+        let selectedSourceType = 'bar';
+        let sources = [];
+        let filings = [];
+        let selectedIndex = null;
+        let draggingIndex = null;
+        let rotatingIndex = null;
+        let dragOffset = { x: 0, y: 0 };
+        
+        let showFieldLines = false;
+        let showSources = true;
+        let continuousJiggle = true;
+        let numFilings = 8000;
+        let globalFilingLength = 12;
+
+        // FPS tracking
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fpsTimer = 0;
+
+        class MagneticSource {
+            constructor(x, y, type = 'bar', angle = 0, strength = 120, size = 1.0) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.angle = angle;
+                this.strength = strength;
+                this.size = size;
+                this.baseLength = 160;
+                this.baseWidth = 40;
+            }
+
+            get currentLength() {
+                return this.baseLength * this.size;
+            }
+
+            get currentWidth() {
+                return this.baseWidth * this.size;
+            }
+
+            getFieldAt(px, py) {
+                let Bx = 0;
+                let By = 0;
+                const cos = Math.cos(this.angle);
+                const sin = Math.sin(this.angle);
+
+                if (this.type === 'bar') {
+                    const halfL = (this.currentLength) / 4;
+                    const nx = this.x + cos * halfL * 2;
+                    const ny = this.y + sin * halfL * 2;
+                    const sx = this.x - cos * halfL * 2;
+                    const sy = this.y - sin * halfL * 2;
+
+                    let dxN = px - nx;
+                    let dyN = py - ny;
+                    let rN2 = dxN * dxN + dyN * dyN + 300;
+                    let rN = Math.sqrt(rN2);
+                    let fN = this.strength / (rN2 * rN);
+                    Bx += dxN * fN;
+                    By += dyN * fN;
+
+                    let dxS = px - sx;
+                    let dyS = py - sy;
+                    let rS2 = dxS * dxS + dyS * dyS + 300;
+                    let rS = Math.sqrt(rS2);
+                    let fS = -this.strength / (rS2 * rS);
+                    Bx += dxS * fS;
+                    By += dyS * fS;
+
+                } else if (this.type === 'vortex') {
+                    let dx = px - this.x;
+                    let dy = py - this.y;
+                    let scaledCore = 500 * (this.size * this.size);
+                    let r2 = dx * dx + dy * dy + scaledCore;
+                    let r = Math.sqrt(r2);
+                    let tangentFactor = (this.strength * 0.75 * this.size) / (r2 * r);
+                    Bx += -dy * tangentFactor;
+                    By += dx * tangentFactor;
+
+                } else if (this.type === 'horseshoe') {
+                    const halfL = (this.currentLength) / 3;
+                    const leftX = this.x - sin * halfL;
+                    const leftY = this.y + cos * halfL;
+                    const rightX = this.x + sin * halfL;
+                    const rightY = this.y - cos * halfL;
+
+                    let dxL = px - leftX, dyL = py - leftY;
+                    let rL2 = dxL * dxL + dyL * dyL + 250;
+                    let fL = this.strength / (rL2 * Math.sqrt(rL2));
+                    Bx += dxL * fL; By += dyL * fL;
+
+                    let dxR = px - rightX, dyR = py - rightY;
+                    let rR2 = dxR * dxR + dyR * dyR + 250;
+                    let fR = -this.strength / (rR2 * Math.sqrt(rR2));
+                    Bx += dxR * fR; By += dyR * fR;
+
+                } else if (this.type === 'quadrupole') {
+                    const d = (this.currentLength) / 3;
+                    const poles = [
+                        { x: this.x + cos * d, y: this.y + sin * d, q: this.strength },
+                        { x: this.x - cos * d, y: this.y - sin * d, q: -this.strength },
+                        { x: this.x - sin * d, y: this.y + cos * d, q: this.strength },
+                        { x: this.x + sin * d, y: this.y - cos * d, q: -this.strength }
+                    ];
+                    for (let p of poles) {
+                        let dx = px - p.x;
+                        let dy = py - p.y;
+                        let r2 = dx * dx + dy * dy + 200;
+                        let f = p.q / (r2 * Math.sqrt(r2));
+                        Bx += dx * f;
+                        By += dy * f;
+                    }
+                }
+
+                return { Bx, By };
+            }
+
+            draw(ctx, isSelected, cleanExport = false) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                const halfL = this.currentLength / 2;
+                const halfW = this.currentWidth / 2;
+                const radius = 8 * this.size;
+
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetY = 4;
+
+                if (this.type === 'bar') {
+                    // Monochrome bar magnet (White N pole, Dark Gray S pole)
+                    ctx.fillStyle = '#262626';
+                    ctx.beginPath();
+                    ctx.roundRect(-halfL, -halfW, halfL, this.currentWidth, [radius, 0, 0, radius]);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.roundRect(0, -halfW, halfL, this.currentWidth, [0, radius, radius, 0]);
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -halfW); ctx.lineTo(0, halfW); ctx.stroke();
+
+                    ctx.shadowBlur = 0;
+                    ctx.font = `bold ${Math.max(9, Math.round(12 * this.size))}px monospace`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText('S', -halfL / 2, 0);
+                    ctx.fillStyle = '#000000';
+                    ctx.fillText('N', halfL / 2, 0);
+
+                } else if (this.type === 'vortex') {
+                    ctx.fillStyle = '#171717';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, halfW * 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#a3a3a3';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, halfW * 0.6, 0, Math.PI * 1.5);
+                    ctx.stroke();
+
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `bold ${Math.max(9, Math.round(11 * this.size))}px monospace`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText('VORTEX', 0, 0);
+
+                } else if (this.type === 'horseshoe') {
+                    ctx.fillStyle = '#262626';
+                    ctx.beginPath();
+                    ctx.roundRect(-halfL, -halfW, this.currentLength, this.currentWidth, radius);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(-halfL + 15 * this.size, -halfW + 8 * this.size, this.currentLength - 30 * this.size, this.currentWidth - 16 * this.size);
+
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `bold ${Math.max(9, Math.round(11 * this.size))}px monospace`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText('N', halfL - 25 * this.size, 0);
+                    ctx.fillStyle = '#a3a3a3';
+                    ctx.fillText('S', -halfL + 25 * this.size, 0);
+
+                } else if (this.type === 'quadrupole') {
+                    ctx.fillStyle = '#171717';
+                    ctx.beginPath();
+                    ctx.roundRect(-halfL, -halfW, this.currentLength, this.currentWidth, radius);
+                    ctx.fill();
+
+                    ctx.shadowBlur = 0;
+                    ctx.font = `bold ${Math.max(8, Math.round(10 * this.size))}px monospace`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#ffffff'; ctx.fillText('N1', -halfL / 2, -10 * this.size);
+                    ctx.fillStyle = '#a3a3a3'; ctx.fillText('S1', -halfL / 2, 10 * this.size);
+                    ctx.fillStyle = '#ffffff'; ctx.fillText('N2', halfL / 2, -10 * this.size);
+                    ctx.fillStyle = '#a3a3a3'; ctx.fillText('S2', halfL / 2, 10 * this.size);
+                }
+
+                if (isSelected && !cleanExport) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeRect(-halfL - 6, -halfW - 6, this.currentLength + 12, this.currentWidth + 12);
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(halfL + 25, 0, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.setLineDash([]);
+                }
+
+                ctx.restore();
+                
+                if (!cleanExport) {
+                    this.drawHUD(ctx, isSelected);
+                }
+            }
+
+            drawHUD(ctx, isSelected) {
+                ctx.save();
+                ctx.translate(this.x, this.y - (35 * this.size));
+
+                ctx.fillStyle = isSelected ? '#171717' : '#0a0a0a';
+                ctx.strokeStyle = isSelected ? '#ffffff' : '#333333';
+                ctx.lineWidth = 1.5;
+                
+                const boxW = 155;
+                const boxH = 28;
+                ctx.beginPath();
+                ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.font = '10px monospace';
+                ctx.fillStyle = '#d4d4d4';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                const deg = Math.round((this.angle * 180) / Math.PI) % 360;
+                ctx.fillText(`MAG:${this.strength} | S:(${this.size.toFixed(1)}x) | ∠:${deg}°`, 0, 0);
+
+                ctx.restore();
+            }
+
+            contains(px, py) {
+                const dx = px - this.x;
+                const dy = py - this.y;
+                const cos = Math.cos(-this.angle);
+                const sin = Math.sin(-this.angle);
+                const localX = dx * cos - dy * sin;
+                const localY = dx * sin + dy * cos;
+                return Math.abs(localX) <= this.currentLength / 2 && Math.abs(localY) <= this.currentWidth / 2;
+            }
+
+            containsRotationHandle(px, py) {
+                const halfL = this.currentLength / 2;
+                const cos = Math.cos(this.angle);
+                const sin = Math.sin(this.angle);
+                const handleX = this.x + cos * (halfL + 25);
+                const handleY = this.y + sin * (halfL + 25);
+                return Math.hypot(px - handleX, py - handleY) <= 12;
+            }
+        }
+
+        class Filing {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.angle = Math.random() * Math.PI * 2;
+                this.vx = 0;
+                this.vy = 0;
+            }
+
+            update(sources, jiggle) {
+                let Bx = 0;
+                let By = 0;
+
+                for (let src of sources) {
+                    const b = src.getFieldAt(this.x, this.y);
+                    Bx += b.Bx;
+                    By += b.By;
+                }
+
+                const BMag = Math.hypot(Bx, By);
+
+                if (BMag > 0.0001) {
+                    const targetAngle = Math.atan2(By, Bx);
+                    let angleDiff = targetAngle - this.angle;
+                    angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+                    this.angle += angleDiff * 0.4;
+
+                    const alignForce = 0.18;
+                    this.vx = (this.vx + Bx * alignForce * 0.04) * 0.82;
+                    this.vy = (this.vy + By * alignForce * 0.04) * 0.82;
+
+                    this.x += this.vx;
+                    this.y += this.vy;
+                }
+
+                if (jiggle) {
+                    this.angle += (Math.random() - 0.5) * 0.12;
+                    this.x += (Math.random() - 0.5) * 0.35;
+                    this.y += (Math.random() - 0.5) * 0.35;
+                }
+
+                if (this.x < 10) { this.x = 10; this.vx *= -0.5; }
+                if (this.x > width - 10) { this.x = width - 10; this.vx *= -0.5; }
+                if (this.y < 10) { this.y = 10; this.vy *= -0.5; }
+                if (this.y > height - 10) { this.y = height - 10; this.vy *= -0.5; }
+            }
+
+            draw(ctx, length) {
+                const cos = Math.cos(this.angle);
+                const sin = Math.sin(this.angle);
+                const halfL = length / 2;
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(this.x - cos * halfL, this.y - sin * halfL);
+                ctx.lineTo(this.x + cos * halfL, this.y + sin * halfL);
+                ctx.stroke();
+            }
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            width = container.clientWidth;
+            height = container.clientHeight;
+            canvas.width = width * window.devicePixelRatio;
+            canvas.height = height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            initFilings();
+        }
+
+        function initFilings() {
+            filings = [];
+            for (let i = 0; i < numFilings; i++) {
+                filings.push(new Filing(Math.random() * (width - 40) + 20, Math.random() * (height - 40) + 20));
+            }
+            filingCountBadge.textContent = numFilings.toLocaleString();
+        }
+
+        window.setSourceType = function(type) {
+            selectedSourceType = type;
+            ['bar', 'vortex', 'horseshoe', 'quadrupole'].forEach(t => {
+                const btn = document.getElementById(`type${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
+                if (btn) {
+                    if (t === type) {
+                        btn.className = "bg-neutral-900 border border-white text-white p-2.5 rounded-xl text-xs font-medium text-left transition flex flex-col space-y-1";
+                    } else {
+                        btn.className = "bg-neutral-900 border border-neutral-800 text-neutral-300 p-2.5 rounded-xl text-xs font-medium text-left transition flex flex-col space-y-1 hover:bg-neutral-800";
+                    }
+                }
+            });
+        };
+
+        window.loadPreset = function(preset) {
+            sources = [];
+            const cx = width / 2;
+            const cy = height / 2;
+
+            if (preset === 'dipole') {
+                sources.push(new MagneticSource(cx, cy, 'bar', 0, 140, 1.0));
+            } else if (preset === 'vortex') {
+                sources.push(new MagneticSource(cx, cy, 'vortex', 0, 140, 1.2));
+            } else if (preset === 'attract') {
+                sources.push(new MagneticSource(cx - 120, cy, 'bar', 0, 130, 1.0));
+                sources.push(new MagneticSource(cx + 120, cy, 'bar', Math.PI, 130, 1.0));
+            } else if (preset === 'quad') {
+                sources.push(new MagneticSource(cx, cy, 'quadrupole', 0, 150, 1.2));
+            }
+
+            selectedIndex = sources.length > 0 ? 0 : null;
+            updateSourceUI();
+            scatterFilings();
+        };
+
+        function scatterFilings() {
+            for (let f of filings) {
+                f.x = Math.random() * (width - 40) + 20;
+                f.y = Math.random() * (height - 40) + 20;
+                f.vx = (Math.random() - 0.5) * 4;
+                f.vy = (Math.random() - 0.5) * 4;
+            }
+        }
+
+        function updateSourceUI() {
+            magnetCountBadge.textContent = sources.length;
+            const panel = document.getElementById('magnetPropsPanel');
+            if (selectedIndex !== null && sources[selectedIndex]) {
+                panel.style.opacity = '1';
+                panel.style.pointerEvents = 'auto';
+                strengthSlider.value = sources[selectedIndex].strength;
+                strengthVal.textContent = sources[selectedIndex].strength;
+                sizeSlider.value = sources[selectedIndex].size;
+                sizeVal.textContent = sources[selectedIndex].size.toFixed(1) + 'x';
+            } else {
+                panel.style.opacity = '0.5';
+                panel.style.pointerEvents = 'none';
+            }
+        }
+
+        function drawFieldLinesOverlay() {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+
+            for (let src of sources) {
+                const startX = src.x;
+                const startY = src.y;
+
+                for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+                    ctx.beginPath();
+                    let currX = startX + Math.cos(a) * (20 * src.size);
+                    let currY = startY + Math.sin(a) * (20 * src.size);
+                    ctx.moveTo(currX, currY);
+
+                    for (let step = 0; step < 120; step++) {
+                        let Bx = 0, By = 0;
+                        for (let s of sources) {
+                            const b = s.getFieldAt(currX, currY);
+                            Bx += b.Bx; By += b.By;
+                        }
+                        let mag = Math.hypot(Bx, By);
+                        if (mag < 0.00001) break;
+                        currX += (Bx / mag) * 5;
+                        currY += (By / mag) * 5;
+                        if (currX < 0 || currX > width || currY < 0 || currY > height) break;
+                        ctx.lineTo(currX, currY);
+                    }
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function animate(timestamp) {
+            frameCount++;
+            if (timestamp - fpsTimer >= 1000) {
+                fpsCounter.textContent = Math.round((frameCount * 1000) / (timestamp - fpsTimer));
+                frameCount = 0;
+                fpsTimer = timestamp;
+            }
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            const step = 45;
+            ctx.beginPath();
+            for (let x = 0; x < width; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
+            for (let y = 0; y < height; y += step) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
+            ctx.stroke();
+
+            if (showFieldLines && sources.length > 0) {
+                drawFieldLinesOverlay();
+            }
+
+            for (let f of filings) {
+                f.update(sources, continuousJiggle);
+                f.draw(ctx, globalFilingLength);
+            }
+
+            if (showSources) {
+                for (let i = 0; i < sources.length; i++) {
+                    sources[i].draw(ctx, i === selectedIndex, false);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        canvas.addEventListener('mousedown', (e) => handlePointerDown(getMousePos(e)));
+        canvas.addEventListener('mousemove', (e) => handlePointerMove(getMousePos(e)));
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handlePointerDown(getMousePos(e)); }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handlePointerMove(getMousePos(e)); }, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
+
+        function handlePointerDown(pos) {
+            if (mode === 'add') {
+                sources.push(new MagneticSource(pos.x, pos.y, selectedSourceType, 0, parseInt(strengthSlider.value), parseFloat(sizeSlider.value)));
+                selectedIndex = sources.length - 1;
+                updateSourceUI();
+            } else if (mode === 'move') {
+                rotatingIndex = null;
+                draggingIndex = null;
+                for (let i = sources.length - 1; i >= 0; i--) {
+                    if (sources[i].containsRotationHandle(pos.x, pos.y)) {
+                        rotatingIndex = i; selectedIndex = i; updateSourceUI(); return;
+                    }
+                    if (sources[i].contains(pos.x, pos.y)) {
+                        draggingIndex = i; selectedIndex = i;
+                        dragOffset = { x: pos.x - sources[i].x, y: pos.y - sources[i].y };
+                        updateSourceUI(); return;
+                    }
+                }
+                selectedIndex = null;
+                updateSourceUI();
+            }
+        }
+
+        function handlePointerMove(pos) {
+            if (rotatingIndex !== null) {
+                const s = sources[rotatingIndex];
+                s.angle = Math.atan2(pos.y - s.y, pos.x - s.x);
+            } else if (draggingIndex !== null) {
+                const s = sources[draggingIndex];
+                s.x = pos.x - dragOffset.x;
+                s.y = pos.y - dragOffset.y;
+            }
+        }
+
+        function handlePointerUp() {
+            draggingIndex = null;
+            rotatingIndex = null;
+        }
+
+        // Export PNG Logic
+        function exportPNG(includeMagnets) {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            const step = 45;
+            ctx.beginPath();
+            for (let x = 0; x < width; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
+            for (let y = 0; y < height; y += step) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
+            ctx.stroke();
+
+            if (showFieldLines && sources.length > 0) {
+                drawFieldLinesOverlay();
+            }
+
+            for (let f of filings) {
+                f.draw(ctx, globalFilingLength);
+            }
+
+            if (includeMagnets) {
+                for (let i = 0; i < sources.length; i++) {
+                    sources[i].draw(ctx, false, true); // cleanExport = true
+                }
+            }
+
+            const link = document.createElement('a');
+            link.download = includeMagnets ? 'drawing-assignment-with-sources.png' : 'drawing-assignment-metal-lines-only.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            exportMenu.classList.add('hidden');
+        }
+
+        exportDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            exportMenu.classList.toggle('hidden');
+        });
+
+        window.addEventListener('click', () => {
+            exportMenu.classList.add('hidden');
+        });
+
+        exportMetalOnlyBtn.addEventListener('click', () => exportPNG(false));
+        exportWithMagnetsBtn.addEventListener('click', () => exportPNG(true));
+
+        modeAddBtn.addEventListener('click', () => {
+            mode = 'add';
+            modeAddBtn.className = "bg-white text-black py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition shadow-md";
+            modeMoveBtn.className = "bg-neutral-900 text-neutral-300 hover:bg-neutral-800 py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center space-x-2 transition border border-neutral-800";
+            canvas.style.cursor = 'crosshair';
+        });
+
+        modeMoveBtn.addEventListener('click', () => {
+            mode = 'move';
+            modeMoveBtn.className = "bg-white text-black py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition shadow-md";
+            modeAddBtn.className = "bg-neutral-900 text-neutral-300 hover:bg-neutral-800 py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center space-x-2 transition border border-neutral-800";
+            canvas.style.cursor = 'grab';
+        });
+
+        strengthSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            strengthVal.textContent = val;
+            if (selectedIndex !== null && sources[selectedIndex]) sources[selectedIndex].strength = val;
+        });
+
+        sizeSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            sizeVal.textContent = val.toFixed(1) + 'x';
+            if (selectedIndex !== null && sources[selectedIndex]) sources[selectedIndex].size = val;
+        });
+
+        filingLengthSlider.addEventListener('input', (e) => {
+            globalFilingLength = parseInt(e.target.value);
+            filingLengthVal.textContent = globalFilingLength + 'px';
+        });
+
+        flipPolarityBtn.addEventListener('click', () => {
+            if (selectedIndex !== null && sources[selectedIndex]) sources[selectedIndex].angle += Math.PI;
+        });
+
+        deleteMagnetBtn.addEventListener('click', () => {
+            if (selectedIndex !== null && sources[selectedIndex]) {
+                sources.splice(selectedIndex, 1);
+                selectedIndex = sources.length > 0 ? 0 : null;
+                updateSourceUI();
+            }
+        });
+
+        fieldLinesToggle.addEventListener('change', (e) => { showFieldLines = e.target.checked; });
+        sourcesVisibilityToggle.addEventListener('change', (e) => { showSources = e.target.checked; });
+        jiggleToggle.addEventListener('change', (e) => { continuousJiggle = e.target.checked; });
+        scatterBtn.addEventListener('click', scatterFilings);
+        clearBtn.addEventListener('click', () => { sources = []; selectedIndex = null; updateSourceUI(); initFilings(); });
+
+        helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+        closeModalBtnFooter.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            loadPreset('dipole');
+            requestAnimationFrame(animate);
+        });
+    </script>
+</body>
+</html>
